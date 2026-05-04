@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+*.egg-info/
+dist/
+build/
+.env
+
+# HuggingFace cache
+.cache/
+
+# Results: keep summary CSVs and tables, ignore raw per-trial JSONs
+results/raw/
+results/*.json
+
+# Jupyter
+.ipynb_checkpoints/
