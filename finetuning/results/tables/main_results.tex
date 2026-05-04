@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Test weighted F1 by language and training-set size, mean $\pm$ standard deviation across five seeds (one seed at the full size).}
+\label{tab:main_results}
+\small
+\begin{tabular}{llccccc}
+\toprule
+Model & Language & 100 & 250 & 500 & 750 & full \\
+\midrule
+AfroXLMR & Luganda & $0.546 \pm 0.129$ & $0.798 \pm 0.052$ & $0.882 \pm 0.012$ & $0.887 \pm 0.005$ & $0.859 \pm 0.000$ \\
+ & Rundi & $0.861 \pm 0.011$ & $0.896 \pm 0.008$ & $0.895 \pm 0.009$ & $0.891 \pm 0.009$ & $0.892 \pm 0.000$ \\
+ & chiShona & $0.895 \pm 0.017$ & $0.918 \pm 0.009$ & $0.922 \pm 0.007$ & $0.928 \pm 0.004$ & $0.932 \pm 0.000$ \\
+ & Kiswahili & $0.783 \pm 0.054$ & $0.833 \pm 0.015$ & $0.836 \pm 0.010$ & $0.843 \pm 0.007$ & $0.834 \pm 0.000$ \\
+\midrule
+XLM-R & Luganda & $0.365 \pm 0.049$ & $0.477 \pm 0.056$ & $0.649 \pm 0.047$ & $0.692 \pm 0.047$ & $0.727 \pm 0.000$ \\
+ & Rundi & $0.629 \pm 0.062$ & $0.742 \pm 0.033$ & $0.803 \pm 0.006$ & $0.822 \pm 0.020$ & $0.834 \pm 0.000$ \\
+ & chiShona & $0.759 \pm 0.025$ & $0.833 \pm 0.017$ & $0.866 \pm 0.009$ & $0.874 \pm 0.010$ & $0.905 \pm 0.000$ \\
+ & Kiswahili & $0.786 \pm 0.020$ & $0.816 \pm 0.014$ & $0.831 \pm 0.015$ & $0.832 \pm 0.014$ & $0.851 \pm 0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,73 @@
+# ── Languages ─────────────────────────────────────────────────────────────────
+# Official MasakhaNEWS split sizes (train / val / test)
+languages:
+  lug:
+    name: Luganda
+    train_size: 771
+    val_size: 110
+    test_size: 223
+  run:
+    name: Rundi
+    train_size: 1117
+    val_size: 159
+    test_size: 322
+  sna:
+    name: chiShona
+    train_size: 1288
+    val_size: 185
+    test_size: 369
+  swh:
+    name: Kiswahili
+    train_size: 1658
+    val_size: 237
+    test_size: 476
+
+# ── Data scales ───────────────────────────────────────────────────────────────
+# Stratified subsamples of the training split.
+# "full" uses the complete training split without subsampling.
+scales: [100, 250, 500, 750, "full"]
+
+# Five random seeds for stratified subsampling (one trial per seed).
+# "full" scale is deterministic; only seeds[0] is used there.
+seeds: [42, 123, 456, 789, 1024]
+
+# ── TF-IDF feature type candidates (hyperparameter) ───────────────────────────
+# The choice of feature type is tuned jointly with classifier hyperparameters
+# on the validation set. char_wb pads tokens with word boundaries.
+feature_types:
+  word_unigram:
+    analyzer: word
+    ngram_range: [1, 1]
+  word_bigram:
+    analyzer: word
+    ngram_range: [1, 2]
+  char_3to5:
+    analyzer: char_wb
+    ngram_range: [3, 5]
+
+# ── Shared TF-IDF settings (not tuned) ────────────────────────────────────────
+tfidf:
+  sublinear_tf: true   # apply 1 + log(tf) scaling
+  max_features: 50000
+  min_df: 1
+
+# ── Classifier hyperparameter grids (all tuned on val set) ────────────────────
+classifiers:
+  naive_bayes:
+    alpha: [0.01, 0.1, 0.5, 1.0]          # Laplace smoothing
+
+  svm:
+    C: [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]   # L2 regularisation strength
+
+  xgboost:
+    n_estimators: [100, 200, 300, 500]
+    # Fixed (not tuned) XGBoost settings
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+
+# ── Dataset ───────────────────────────────────────────────────────────────────
+dataset:
+  hf_name: masakhane/masakhanews
+  text_field: text    # use full article body; alternative: "headline"
+  label_field: category

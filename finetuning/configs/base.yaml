@@ -1,0 +1,58 @@
+# Shared configuration for fine-tuning experiments. Model-specific overrides
+# are kept in configs/<model>.yaml.
+
+model_name: null
+output_root: results
+
+# MasakhaNEWS labels in HuggingFace ClassLabel order.
+labels:
+  - business
+  - entertainment
+  - health
+  - politics
+  - religion
+  - sports
+  - technology
+
+# ISO 639-3 language codes corresponding to MasakhaNEWS dataset configs.
+languages:
+  - lug
+  - run
+  - sna
+  - swa
+
+# Training-set sizes for the controlled-data experiments. `null` denotes the
+# full training split.
+data_scales: [100, 250, 500, 750, null]
+
+# Random seeds for stratified subsampling and training.
+# At `full` scale only the first seed is used (training data is deterministic).
+seeds: [42, 123, 456, 789, 1024]
+
+# Input column from the raw MasakhaNEWS dataset.
+text_field: text
+
+# Optimisation.
+optimizer: adamw
+learning_rate: 2.0e-5
+weight_decay: 0.01
+warmup_ratio: 0.10
+max_epochs: 20
+early_stopping_patience: 10
+early_stopping_metric: eval_f1_weighted
+
+# Tokenisation.
+max_length: 256
+
+# Per-device training batch sizes by scale.
+batch_size_schedule:
+  100: 8
+  250: 16
+  500: 16
+  750: 32
+  full: 32
+
+eval_batch_size: 64
+
+# Force deterministic kernels for reproducibility.
+cudnn_deterministic: true

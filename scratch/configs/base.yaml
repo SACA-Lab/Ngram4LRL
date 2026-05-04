@@ -1,0 +1,69 @@
+# Shared configuration for from-scratch transformer experiments.
+
+short_name: scratch
+output_root: results
+
+# MasakhaNEWS labels in HuggingFace ClassLabel order (aligned with the
+# fine-tuning and n-gram pipelines).
+labels:
+  - business
+  - entertainment
+  - health
+  - politics
+  - religion
+  - sports
+  - technology
+
+languages:
+  - lug
+  - run
+  - sna
+  - swa
+
+# Training-set sizes for the controlled-data experiments.
+data_scales: [100, 250, 500, 750, null]
+
+# Random seeds. At `full` scale only the first seed is used.
+seeds: [42, 123, 456, 789, 1024]
+
+# Input column from the raw MasakhaNEWS dataset.
+text_field: text
+
+# Tokeniser (SentencePiece unigram, trained per language on its full
+# training split).
+vocab_size: 8000
+pad_token: "<pad>"
+unk_token: "<unk>"
+cls_token: "<cls>"
+
+# Encoder architecture.
+d_model: 256
+n_heads: 4
+n_layers: 4
+d_ff: 512
+max_position_embeddings: 256
+dropout: 0.1
+
+# Optimisation.
+optimizer: adamw
+learning_rate: 5.0e-4
+weight_decay: 0.01
+warmup_ratio: 0.10
+max_epochs: 50
+early_stopping_patience: 10
+early_stopping_metric: eval_f1_weighted
+
+# Tokenisation length.
+max_length: 256
+
+# Per-device training batch sizes by scale.
+batch_size_schedule:
+  100: 16
+  250: 32
+  500: 32
+  750: 64
+  full: 64
+
+eval_batch_size: 128
+
+cudnn_deterministic: true

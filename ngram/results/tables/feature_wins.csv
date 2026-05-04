@@ -1,0 +1,16 @@
+Language,Scale,NB,SVM,XGB
+Luganda,100,W-1,C-35,C-35
+Luganda,250,C-35,C-35,C-35
+Luganda,500,C-35,C-35,C-35
+Luganda,750,C-35,C-35,C-35
+Luganda,full,C-35,C-35,C-35
+Rundi,100,W-1,C-35,C-35
+Rundi,250,W-1,C-35,C-35
+Rundi,500,C-35,C-35,C-35
+Rundi,750,W-2,C-35,C-35
+Rundi,full,C-35,C-35,C-35
+chiShona,100,W-1,C-35,C-35
+chiShona,250,W-1,C-35,C-35
+chiShona,500,W-2,C-35,C-35
+chiShona,750,C-35,C-35,C-35
+chiShona,full,C-35,W-2,C-35

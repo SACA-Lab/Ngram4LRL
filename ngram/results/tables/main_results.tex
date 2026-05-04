@@ -1,0 +1,29 @@
+\begin{table}[t]
+\caption{Weighted F1 (mean $\pm$ std over 5 trials) on MasakhaNEWS test sets. NB = Multinomial Naive Bayes, SVM = Linear SVM (L2), XGB = XGBoost.}
+\label{tab:main_results}
+\begin{tabular}{llccc}
+\toprule
+ & Classifier & NB & SVM & XGB \\
+Language & Scale &  &  &  \\
+\midrule
+\multirow[t]{5}{*}{\textbf{Luganda}} & \textbf{100} & 0.772 $\pm$ 0.028 & 0.769 $\pm$ 0.033 & 0.680 $\pm$ 0.020 \\
+\textbf{} & \textbf{250} & 0.815 $\pm$ 0.016 & 0.852 $\pm$ 0.011 & 0.787 $\pm$ 0.008 \\
+\textbf{} & \textbf{500} & 0.854 $\pm$ 0.009 & 0.871 $\pm$ 0.013 & 0.825 $\pm$ 0.011 \\
+\textbf{} & \textbf{750} & 0.865 $\pm$ 0.004 & 0.880 $\pm$ 0.004 & 0.847 $\pm$ 0.011 \\
+\textbf{} & \textbf{full} & 0.865 & 0.877 & 0.839 \\
+\cline{1-5}
+\multirow[t]{5}{*}{\textbf{Rundi}} & \textbf{100} & 0.721 $\pm$ 0.026 & 0.746 $\pm$ 0.025 & 0.700 $\pm$ 0.022 \\
+\textbf{} & \textbf{250} & 0.770 $\pm$ 0.016 & 0.815 $\pm$ 0.005 & 0.746 $\pm$ 0.030 \\
+\textbf{} & \textbf{500} & 0.810 $\pm$ 0.026 & 0.848 $\pm$ 0.012 & 0.794 $\pm$ 0.023 \\
+\textbf{} & \textbf{750} & 0.835 $\pm$ 0.009 & 0.853 $\pm$ 0.011 & 0.812 $\pm$ 0.025 \\
+\textbf{} & \textbf{full} & 0.857 & 0.897 & 0.861 \\
+\cline{1-5}
+\multirow[t]{5}{*}{\textbf{chiShona}} & \textbf{100} & 0.886 $\pm$ 0.021 & 0.895 $\pm$ 0.013 & 0.830 $\pm$ 0.016 \\
+\textbf{} & \textbf{250} & 0.906 $\pm$ 0.007 & 0.913 $\pm$ 0.007 & 0.880 $\pm$ 0.009 \\
+\textbf{} & \textbf{500} & 0.916 $\pm$ 0.009 & 0.929 $\pm$ 0.006 & 0.899 $\pm$ 0.012 \\
+\textbf{} & \textbf{750} & 0.917 $\pm$ 0.014 & 0.924 $\pm$ 0.011 & 0.912 $\pm$ 0.005 \\
+\textbf{} & \textbf{full} & 0.935 & 0.916 & 0.913 \\
+\cline{1-5}
+\bottomrule
+\end{tabular}
+\end{table}
