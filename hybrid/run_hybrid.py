@@ -90,31 +90,62 @@ def run_hybrid_lang(lang: str) -> dict:
     from sklearn.svm import LinearSVC
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+    # ── Diagnostic log (written to volume for post-run inspection) ───────────
+    diag: dict = {"lang": lang, "svm": {}, "neural": {}, "dataset": {}}
+
+    def _log(msg: str) -> None:
+        print(msg)
+
     # ── Dataset ───────────────────────────────────────────────────────────────
-    print(f"[{lang}] loading MasakhaNEWS")
+    _log(f"[{lang}] loading MasakhaNEWS")
     ds = load_dataset("masakhane/masakhanews", lang)
 
-    # Use the dataset's ClassLabel str2int for label encoding — same as the
-    # ngram training code (alphabetical: business=0 … technology=6).
-    feat = ds["train"].features["category"]
-    if hasattr(feat, "str2int"):
-        label2id = feat.str2int
-    else:
-        sorted_names = sorted({ex["category"] for ex in ds["train"]})
-        label2id = {n: i for i, n in enumerate(sorted_names)}
+    # Mirror the finetuning label encoding exactly:
+    #   ClassLabel integer → ClassLabel string name → canonical index in LABELS
+    # This is the only encoding that aligns the SVM and the neural model.
+    # Using feat.str2int directly is wrong: it gives a per-language alphabetical
+    # index that doesn't match the canonical 7-class order used during finetuning.
+    from collections import Counter
+    from datasets import ClassLabel as HFClassLabel
 
-    def _get_labels(split: str) -> "np.ndarray":
-        return np.array([label2id[ex["category"]] for ex in ds[split]])
+    canonical_label2id = {name.lower(): i for i, name in enumerate(LABELS)}
+    feat           = ds["train"].features["category"]
+    is_class_label = isinstance(feat, HFClassLabel)
+    ds_label_names = list(feat.names) if is_class_label else None
 
-    y_train = _get_labels("train")
-    y_val   = _get_labels("validation")
-    y_test  = _get_labels("test")
+    def _cat_name(ex) -> str:
+        raw = ex["category"]
+        return (ds_label_names[raw] if is_class_label else str(raw)).lower()
 
-    train_texts = ds["train"]["text"]
-    val_texts   = ds["validation"]["text"]
-    test_texts  = ds["test"]["text"]
+    def _process_split(split: str):
+        """Texts + canonical label indices; skips any category absent from LABELS."""
+        texts, labels = [], []
+        for ex in ds[split]:
+            name = _cat_name(ex)
+            if name in canonical_label2id:
+                texts.append(ex["text"])
+                labels.append(canonical_label2id[name])
+        return texts, np.array(labels, dtype=np.int64)
 
-    print(f"[{lang}] train={len(y_train)}  val={len(y_val)}  test={len(y_test)}")
+    train_texts, y_train = _process_split("train")
+    val_texts,   y_val   = _process_split("validation")
+    test_texts,  y_test  = _process_split("test")
+
+    lang_classes = sorted({_cat_name(ex) for ex in ds["train"]} & set(LABELS))
+    diag["dataset"] = {
+        "classlabel_names":     ds_label_names,
+        "canonical_label2id":   canonical_label2id,
+        "classes_in_this_lang": lang_classes,
+        "split_sizes":          {"train": int(len(y_train)), "val": int(len(y_val)), "test": int(len(y_test))},
+        "train_class_counts":   {LABELS[k]: int(v) for k, v in sorted(Counter(y_train.tolist()).items())},
+        "val_class_counts":     {LABELS[k]: int(v) for k, v in sorted(Counter(y_val.tolist()).items())},
+        "test_class_counts":    {LABELS[k]: int(v) for k, v in sorted(Counter(y_test.tolist()).items())},
+    }
+    _log(f"[{lang}] train={len(y_train)}  val={len(y_val)}  test={len(y_test)}")
+    _log(f"[{lang}] ClassLabel names:       {ds_label_names}")
+    _log(f"[{lang}] classes in this lang:   {lang_classes}")
+    _log(f"[{lang}] canonical_label2id:     {canonical_label2id}")
+    _log(f"[{lang}] train class counts:     {diag['dataset']['train_class_counts']}")
 
     # ── N-gram SVM (calibrated) ────────────────────────────────────────────────
     cfg = SVM_CONFIG[lang]
@@ -156,10 +187,24 @@ def run_hybrid_lang(lang: str) -> dict:
 
     svm_val_f1  = float(f1_score(y_val,  ngram_val_probs.argmax(1),  average="weighted"))
     svm_test_f1 = float(f1_score(y_test, ngram_test_probs.argmax(1), average="weighted"))
-    missing = sorted(set(range(len(LABELS))) - set(cal_svm.classes_.tolist()))
-    if missing:
-        print(f"[{lang}] SVM note: classes {missing} absent from training data — padded with 0")
-    print(f"[{lang}] SVM       val={svm_val_f1:.4f}  test={svm_test_f1:.4f}")
+
+    svm_classes  = cal_svm.classes_.tolist()
+    missing_ids  = sorted(set(range(len(LABELS))) - set(svm_classes))
+    missing_names = [LABELS[i] for i in missing_ids]
+
+    diag["svm"] = {
+        "feature_type":          ft,
+        "C":                     cfg["C"],
+        "classes_seen":          [LABELS[i] for i in svm_classes],
+        "classes_missing":       missing_names,
+        "predict_proba_shape":   [int(s) for s in cal_svm.predict_proba(X_val[:1]).shape],
+        "val_f1":                round(svm_val_f1,  6),
+        "test_f1":               round(svm_test_f1, 6),
+    }
+    if missing_names:
+        _log(f"[{lang}] SVM: classes absent from training → {missing_names} (padded with 0)")
+    _log(f"[{lang}] SVM classes_: {[LABELS[i] for i in svm_classes]}")
+    _log(f"[{lang}] SVM       val={svm_val_f1:.4f}  test={svm_test_f1:.4f}")
 
     # ── AfroXLMR (fine-tuned, full data, seed 42) ─────────────────────────────
     device   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -176,6 +221,19 @@ def run_hybrid_lang(lang: str) -> dict:
     model = AutoModelForSequenceClassification.from_pretrained(ckpt_dir)
     model.to(device).eval()
 
+    # Record the model's stored label mapping for comparison with the SVM
+    nn_id2label = dict(model.config.id2label) if model.config.id2label else {}
+    nn_label2id = dict(model.config.label2id) if model.config.label2id else {}
+    diag["neural"] = {
+        "checkpoint":  ckpt_dir,
+        "num_labels":  model.config.num_labels,
+        "id2label":    {str(k): v for k, v in nn_id2label.items()},
+        "label2id":    nn_label2id,
+    }
+    _log(f"[{lang}] neural id2label:  {nn_id2label}")
+    _log(f"[{lang}] neural label2id:  {nn_label2id}")
+    _log(f"[{lang}] neural num_labels: {model.config.num_labels}")
+
     def _neural_probs(texts: list) -> "np.ndarray":
         all_probs = []
         for i in range(0, len(texts), BATCH_SIZE):
@@ -190,14 +248,18 @@ def run_hybrid_lang(lang: str) -> dict:
             all_probs.append(torch.softmax(logits, dim=-1).cpu().numpy())
         return np.concatenate(all_probs, axis=0)
 
-    print(f"[{lang}] AfroXLMR inference — validation set")
+    _log(f"[{lang}] AfroXLMR inference — validation set")
     neural_val_probs  = _neural_probs(val_texts)
-    print(f"[{lang}] AfroXLMR inference — test set")
+    _log(f"[{lang}] AfroXLMR inference — test set")
     neural_test_probs = _neural_probs(test_texts)
 
     nn_val_f1  = float(f1_score(y_val,  neural_val_probs.argmax(1),  average="weighted"))
     nn_test_f1 = float(f1_score(y_test, neural_test_probs.argmax(1), average="weighted"))
-    print(f"[{lang}] AfroXLMR  val={nn_val_f1:.4f}  test={nn_test_f1:.4f}")
+    diag["neural"]["val_f1"]  = round(nn_val_f1,  6)
+    diag["neural"]["test_f1"] = round(nn_test_f1, 6)
+    diag["neural"]["prob_shape_val"]  = list(neural_val_probs.shape)
+    diag["neural"]["prob_shape_test"] = list(neural_test_probs.shape)
+    _log(f"[{lang}] AfroXLMR  val={nn_val_f1:.4f}  test={nn_test_f1:.4f}")
 
     # ── λ sweep ───────────────────────────────────────────────────────────────
     val_f1s:  list[float] = []
@@ -231,6 +293,10 @@ def run_hybrid_lang(lang: str) -> dict:
     out = Path(f"/hybrid-results/{lang}_hybrid.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2))
+
+    diag_out = Path(f"/hybrid-results/{lang}_diag.json")
+    diag_out.write_text(json.dumps(diag, indent=2))
+
     hybrid_vol.commit()
 
     return result
