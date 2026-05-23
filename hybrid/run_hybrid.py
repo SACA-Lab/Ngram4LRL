@@ -48,7 +48,7 @@ checkpoints_vol = modal.Volume.from_name("Afroxlm-finetune-results")
 hybrid_vol      = modal.Volume.from_name("hybrid-results", create_if_missing=True)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-LANGUAGES = ["lug", "run", "sna", "swa"]
+LANGUAGES = ["lug", "run", "sna", "swa", "amh", "ibo", "yor", "orm", "pcm", "hau"]
 LABELS    = [
     "business", "entertainment", "health", "politics",
     "religion", "sports", "technology",
@@ -56,12 +56,18 @@ LABELS    = [
 # 11 points: 0.0, 0.1, ..., 1.0
 LAMBDAS = [round(i * 0.1, 1) for i in range(11)]
 
-# Best SVM config at full scale (from ngram val-set grid search)
+# Best SVM config at full scale (from ngram val-set grid search, feature_selection.csv)
 SVM_CONFIG = {
     "lug": {"feature_type": "char_3to5",   "C": 1.0},
     "run": {"feature_type": "char_3to5",   "C": 10.0},
     "sna": {"feature_type": "word_bigram", "C": 10.0},
     "swa": {"feature_type": "char_3to5",   "C": 1.0},
+    "amh": {"feature_type": "char_3to5",   "C": 10.0},
+    "ibo": {"feature_type": "char_3to5",   "C": 1.0},
+    "yor": {"feature_type": "char_3to5",   "C": 10.0},
+    "orm": {"feature_type": "char_3to5",   "C": 10.0},
+    "pcm": {"feature_type": "char_3to5",   "C": 100.0},
+    "hau": {"feature_type": "word_bigram", "C": 10.0},
 }
 
 MAX_LENGTH = 256
