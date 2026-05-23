@@ -19,7 +19,11 @@ from pathlib import Path
 import pandas as pd
 
 SCALE_ORDER = ["100", "250", "500", "750", "full"]
-LANG_DISPLAY = {"lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swh": "Kiswahili"}
+LANG_DISPLAY = {
+    "lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swa": "Kiswahili",
+    "amh": "Amharic", "ibo": "Igbo", "yor": "Yoruba", "orm": "Oromo", "pcm": "Nig. Pidgin",
+    "hau": "Hausa",
+}
 CLF_DISPLAY  = {"naive_bayes": "NaiveBayes", "svm": "SVM", "xgboost": "XGBoost"}
 
 

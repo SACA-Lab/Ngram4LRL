@@ -14,3 +14,38 @@ chiShona,250,W-1,C-35,C-35
 chiShona,500,W-2,C-35,C-35
 chiShona,750,C-35,C-35,C-35
 chiShona,full,C-35,W-2,C-35
+Kiswahili,100,W-1,C-35,C-35
+Kiswahili,250,W-2,C-35,C-35
+Kiswahili,500,C-35,C-35,C-35
+Kiswahili,750,C-35,W-1,C-35
+Kiswahili,full,C-35,C-35,C-35
+Amharic,100,C-35,C-35,C-35
+Amharic,250,C-35,C-35,C-35
+Amharic,500,C-35,W-1,C-35
+Amharic,750,W-2,C-35,C-35
+Amharic,full,W-1,C-35,W-2
+Hausa,100,W-1,C-35,C-35
+Hausa,250,W-1,C-35,C-35
+Hausa,500,W-2,C-35,C-35
+Hausa,750,W-2,C-35,C-35
+Hausa,full,W-2,W-2,C-35
+Igbo,100,W-1,C-35,C-35
+Igbo,250,C-35,C-35,C-35
+Igbo,500,C-35,C-35,C-35
+Igbo,750,C-35,C-35,C-35
+Igbo,full,C-35,C-35,W-2
+Yoruba,100,W-1,W-1,C-35
+Yoruba,250,C-35,W-1,C-35
+Yoruba,500,W-1,C-35,C-35
+Yoruba,750,W-1,C-35,C-35
+Yoruba,full,W-1,C-35,W-1
+Oromo,100,W-1,C-35,C-35
+Oromo,250,C-35,C-35,C-35
+Oromo,500,C-35,C-35,C-35
+Oromo,750,C-35,C-35,C-35
+Oromo,full,C-35,C-35,C-35
+Nig. Pidgin,100,W-1,C-35,C-35
+Nig. Pidgin,250,W-1,C-35,W-1
+Nig. Pidgin,500,W-1,W-1,C-35
+Nig. Pidgin,750,C-35,W-1,W-1
+Nig. Pidgin,full,C-35,C-35,W-2

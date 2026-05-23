@@ -22,8 +22,13 @@ from pathlib import Path
 import pandas as pd
 
 SCALE_ORDER  = ["100", "250", "500", "750", "full"]
-LANG_ORDER   = ["Luganda", "Rundi", "chiShona", "Kiswahili"]
-LANG_DISPLAY = {"lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swh": "Kiswahili"}
+LANG_ORDER   = ["Luganda", "Rundi", "chiShona", "Kiswahili",
+                "Amharic", "Hausa", "Igbo", "Yoruba", "Oromo", "Nig. Pidgin"]
+LANG_DISPLAY = {
+    "lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swa": "Kiswahili",
+    "amh": "Amharic", "hau": "Hausa", "ibo": "Igbo", "yor": "Yoruba",
+    "orm": "Oromo", "pcm": "Nig. Pidgin",
+}
 CLF_DISPLAY  = {"naive_bayes": "NB", "svm": "SVM", "xgboost": "XGB"}
 FEAT_DISPLAY = {
     "word_unigram": "W-1",

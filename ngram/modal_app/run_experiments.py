@@ -43,12 +43,15 @@ image = (
     .add_local_python_source("ngram")
 )
 
+# ── HF Hub auth (avoids rate-limiting on dataset downloads after preemption) ───
+hf_secret = modal.Secret.from_name("huggingface-secret")
+
 # ── Persistent volumes ─────────────────────────────────────────────────────────
 hf_cache    = modal.Volume.from_name("ngram-hf-cache",  create_if_missing=True)
 results_vol = modal.Volume.from_name("ngram-results",   create_if_missing=True)
 
 # ── Experiment parameters ──────────────────────────────────────────────────────
-LANGUAGES   = ["lug", "run", "sna", "swa"]
+LANGUAGES   = ["lug", "run", "sna", "swa", "amh", "ibo", "yor", "orm", "pcm", "hau"]
 SCALES      = [100, 250, 500, 750, "full"]
 SEEDS       = [42, 123, 456, 789, 1024]
 CLASSIFIERS = ["naive_bayes", "svm", "xgboost"]
@@ -59,14 +62,15 @@ TFIDF_KWARGS = dict(sublinear_tf=True, max_features=50000, min_df=1)
 # ── Remote function (one invocation = one trial) ───────────────────────────────
 @app.function(
     image=image,
+    secrets=[hf_secret],
     volumes={
         "/root/.cache/huggingface": hf_cache,
         "/results": results_vol,
     },
     cpu=2.0,
-    memory=4096,
+    memory=16384,
     timeout=24*3600,
-    retries=2,
+    retries=5,
     max_containers=90,  # stay under Modal free-tier 100-container cap
 )
 def run_trial_remote(

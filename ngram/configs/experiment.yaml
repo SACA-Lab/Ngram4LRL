@@ -1,6 +1,7 @@
 # ── Languages ─────────────────────────────────────────────────────────────────
 # Official MasakhaNEWS split sizes (train / val / test)
 languages:
+  # ── Bantu languages ───────────────────────────────────────────────────────
   lug:
     name: Luganda
     train_size: 771
@@ -16,11 +17,42 @@ languages:
     train_size: 1288
     val_size: 185
     test_size: 369
-  swh:
+  swa:
     name: Kiswahili
     train_size: 1658
     val_size: 237
     test_size: 476
+  # ── Additional African languages ──────────────────────────────────────────
+  amh:
+    name: Amharic
+    train_size: 762
+    val_size: 108
+    test_size: 217
+  ibo:
+    name: Igbo
+    train_size: 3007
+    val_size: 430
+    test_size: 857
+  yor:
+    name: Yoruba
+    train_size: 3007
+    val_size: 430
+    test_size: 857
+  orm:
+    name: Oromo
+    train_size: 3007
+    val_size: 430
+    test_size: 857
+  pcm:
+    name: Nigerian Pidgin
+    train_size: 3007
+    val_size: 430
+    test_size: 857
+  hau:
+    name: Hausa
+    train_size: 3007
+    val_size: 430
+    test_size: 857
 
 # ── Data scales ───────────────────────────────────────────────────────────────
 # Stratified subsamples of the training split.
