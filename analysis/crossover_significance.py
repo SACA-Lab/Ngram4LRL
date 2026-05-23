@@ -17,7 +17,7 @@ import pandas as pd
 from scipy.stats import ttest_rel
 
 SEEDS = [42, 123, 456, 789, 1024]
-LANGS = ["lug", "run", "sna", "swa"]
+LANGS = ["lug", "run", "sna", "swa", "amh", "ibo", "yor", "orm", "pcm", "hau"]
 SCALES = [100, 250, 500, 750, "full"]
 
 LANG_DISPLAY = {
@@ -25,6 +25,12 @@ LANG_DISPLAY = {
     "run": "Rundi",
     "sna": "chiShona",
     "swa": "Kiswahili",
+    "amh": "Amharic",
+    "ibo": "Igbo",
+    "yor": "Yoruba",
+    "orm": "Oromo",
+    "pcm": "Nig. Pidgin",
+    "hau": "Hausa",
 }
 
 # ── Load data ─────────────────────────────────────────────────────────────────
