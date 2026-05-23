@@ -20,8 +20,18 @@ LANG_DISPLAY = {
     "run": "Rundi",
     "sna": "chiShona",
     "swa": "Kiswahili",
+    "amh": "Amharic",
+    "ibo": "Igbo",
+    "yor": "Yoruba",
+    "orm": "Oromo",
+    "pcm": "Nig. Pidgin",
+    "hau": "Hausa",
 }
-COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+COLORS = [
+    "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+    "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+    "#bcbd22", "#17becf",
+]
 
 # ── Load results ─────────────────────────────────────────────────────────────
 csv_path = Path("hybrid/results/hybrid_sweep.csv")
@@ -35,7 +45,7 @@ df = pd.read_csv(csv_path)
 langs = sorted(df["lang"].unique())
 
 # ── Plot ─────────────────────────────────────────────────────────────────────
-fig, ax = plt.subplots(figsize=(7, 4.5))
+fig, ax = plt.subplots(figsize=(9, 5.5))
 
 for lang, color in zip(langs, COLORS):
     sub  = df[df["lang"] == lang].sort_values("lambda")
@@ -65,8 +75,8 @@ ax.set_title(
     fontsize=11,
 )
 ax.legend(
-    framealpha=0.9, fontsize=10,
-    loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.38),
+    framealpha=0.9, fontsize=9,
+    loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.30),
 )
 ax.grid(axis="y", linestyle="--", alpha=0.4)
 ax.grid(axis="x", linestyle=":", alpha=0.3)
