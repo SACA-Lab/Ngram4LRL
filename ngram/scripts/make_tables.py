@@ -1,7 +1,7 @@
 """
 Generate publication-ready tables from results/summary.csv.
 
-Outputs (in results/tables/)
+Outputs (in results/tables/, or results/<dataset>/tables/ for afrisenti/sib200)
 ────────────────────────────
 main_results.csv   — wide table: (lang, scale) × classifier, values = mean±std
 main_results.tex   — LaTeX version of the above
@@ -11,23 +11,43 @@ feature_wins.tex   — LaTeX version of feature_wins
 Usage
 ─────
 python scripts/make_tables.py
+python scripts/make_tables.py --dataset afrisenti
+python scripts/make_tables.py --dataset sib200
 python scripts/make_tables.py --results-dir results --output-dir results/tables
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import pandas as pd
 
-SCALE_ORDER  = ["100", "250", "500", "750", "full"]
-LANG_ORDER   = ["Luganda", "Rundi", "chiShona", "Kiswahili",
-                "Amharic", "Hausa", "Igbo", "Yoruba", "Oromo", "Nig. Pidgin"]
-LANG_DISPLAY = {
-    "lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swa": "Kiswahili",
-    "amh": "Amharic", "hau": "Hausa", "ibo": "Igbo", "yor": "Yoruba",
-    "orm": "Oromo", "pcm": "Nig. Pidgin",
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from ngram.data import DATASETS
+
+LANG_DISPLAY_BY_DATASET = {
+    "masakhanews": {
+        "lug": "Luganda", "run": "Rundi", "sna": "chiShona", "swa": "Kiswahili",
+        "amh": "Amharic", "hau": "Hausa", "ibo": "Igbo", "yor": "Yoruba",
+        "orm": "Oromo", "pcm": "Nig. Pidgin",
+    },
+    "afrisenti": {
+        "amh": "Amharic", "hau": "Hausa", "ibo": "Igbo", "orm": "Oromo",
+        "pcm": "Nig. Pidgin", "swa": "Kiswahili", "yor": "Yoruba",
+    },
+    "sib200": {
+        "hau": "Hausa", "ibo": "Igbo", "lug": "Luganda", "gaz": "Oromo",
+        "run": "Rundi", "sna": "chiShona", "swh": "Swahili", "yor": "Yoruba",
+        "amh": "Amharic",
+    },
+}
+DATASET_TITLE = {
+    "masakhanews": "MasakhaNEWS",
+    "afrisenti": "AfriSenti",
+    "sib200": "SIB-200",
 }
 CLF_DISPLAY  = {"naive_bayes": "NB", "svm": "SVM", "xgboost": "XGB"}
 FEAT_DISPLAY = {
@@ -47,17 +67,19 @@ def _load(results_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     return summary, feature_sel
 
 
-def make_main_table(summary: pd.DataFrame) -> pd.DataFrame:
+def make_main_table(
+    summary: pd.DataFrame, scale_order: list[str], lang_order: list[str], lang_display: dict[str, str]
+) -> pd.DataFrame:
     """Wide table: rows = (Language, Scale), cols = classifier, values = mean±std."""
     summary = summary.copy()
-    summary["Language"] = summary["lang"].map(LANG_DISPLAY)
+    summary["Language"] = summary["lang"].map(lang_display)
     summary["Classifier"] = summary["classifier"].map(CLF_DISPLAY)
     summary["value"] = summary.apply(
         lambda r: f"{r.mean_f1:.3f}" + (f" $\\pm$ {r.std_f1:.3f}" if r.n_trials > 1 else ""),
         axis=1,
     )
-    summary["Scale"] = pd.Categorical(summary["scale"], categories=SCALE_ORDER, ordered=True)
-    summary["Language"] = pd.Categorical(summary["Language"], categories=LANG_ORDER, ordered=True)
+    summary["Scale"] = pd.Categorical(summary["scale"], categories=scale_order, ordered=True)
+    summary["Language"] = pd.Categorical(summary["Language"], categories=lang_order, ordered=True)
 
     table = summary.pivot_table(
         index=["Language", "Scale"],
@@ -70,14 +92,16 @@ def make_main_table(summary: pd.DataFrame) -> pd.DataFrame:
     return table
 
 
-def make_feature_table(feature_sel: pd.DataFrame) -> pd.DataFrame:
+def make_feature_table(
+    feature_sel: pd.DataFrame, scale_order: list[str], lang_order: list[str], lang_display: dict[str, str]
+) -> pd.DataFrame:
     """Which feature type won most often per (Language, Scale, Classifier)."""
     feature_sel = feature_sel.copy()
-    feature_sel["Language"]   = feature_sel["lang"].map(LANG_DISPLAY)
+    feature_sel["Language"]   = feature_sel["lang"].map(lang_display)
     feature_sel["Classifier"] = feature_sel["classifier"].map(CLF_DISPLAY)
     feature_sel["Feature"]    = feature_sel["dominant_feature"].map(FEAT_DISPLAY)
-    feature_sel["Scale"] = pd.Categorical(feature_sel["scale"], categories=SCALE_ORDER, ordered=True)
-    feature_sel["Language"] = pd.Categorical(feature_sel["Language"], categories=LANG_ORDER, ordered=True)
+    feature_sel["Scale"] = pd.Categorical(feature_sel["scale"], categories=scale_order, ordered=True)
+    feature_sel["Language"] = pd.Categorical(feature_sel["Language"], categories=lang_order, ordered=True)
 
     return feature_sel.pivot_table(
         index=["Language", "Scale"],
@@ -102,23 +126,30 @@ def _to_latex(table: pd.DataFrame, caption: str, label: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--results-dir", default="results")
-    parser.add_argument("--output-dir",  default="results/tables")
+    parser.add_argument("--dataset",     default="masakhanews", choices=list(DATASETS))
+    parser.add_argument("--results-dir", default=None)
+    parser.add_argument("--output-dir",  default=None)
     args = parser.parse_args()
 
-    results_dir = Path(args.results_dir)
-    output_dir  = Path(args.output_dir)
+    default_results = "results" if args.dataset == "masakhanews" else f"results/{args.dataset}"
+    results_dir = Path(args.results_dir) if args.results_dir else Path(default_results)
+    output_dir  = Path(args.output_dir) if args.output_dir else results_dir / "tables"
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    scale_order  = [str(s) for s in DATASETS[args.dataset].scales]
+    lang_display = LANG_DISPLAY_BY_DATASET[args.dataset]
+    lang_order   = [lang_display[l] for l in DATASETS[args.dataset].languages]
+    title        = DATASET_TITLE[args.dataset]
 
     summary, feature_sel = _load(results_dir)
 
     # ── Main results table ─────────────────────────────────────────────────────
-    main_table = make_main_table(summary)
+    main_table = make_main_table(summary, scale_order, lang_order, lang_display)
     main_table.to_csv(output_dir / "main_results.csv")
     (output_dir / "main_results.tex").write_text(
         _to_latex(
             main_table,
-            caption="Weighted F1 (mean $\\pm$ std over 5 trials) on MasakhaNEWS test sets. "
+            caption=f"Weighted F1 (mean $\\pm$ std over 5 trials) on {title} test sets. "
                     "NB = Multinomial Naive Bayes, SVM = Linear SVM (L2), XGB = XGBoost.",
             label="tab:main_results",
         )
@@ -128,7 +159,7 @@ def main() -> None:
 
     # ── Feature selection table ────────────────────────────────────────────────
     if feature_sel is not None:
-        feat_table = make_feature_table(feature_sel)
+        feat_table = make_feature_table(feature_sel, scale_order, lang_order, lang_display)
         feat_table.to_csv(output_dir / "feature_wins.csv")
         (output_dir / "feature_wins.tex").write_text(
             _to_latex(

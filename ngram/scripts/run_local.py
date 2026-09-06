@@ -5,7 +5,8 @@ Usage
 ─────
 python scripts/run_local.py
 python scripts/run_local.py --lang lug --scale 100 --seed 42 --classifier svm
-python scripts/run_local.py --lang swh --scale full --classifier xgboost
+python scripts/run_local.py --dataset afrisenti --lang swa --scale 100 --classifier naive_bayes
+python scripts/run_local.py --dataset sib200 --lang lug --scale 100 --classifier naive_bayes
 """
 
 from __future__ import annotations
@@ -18,31 +19,46 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from ngram.data import DATASETS
 from ngram.train import run_trial
 
-LANGUAGES   = ["lug", "run", "sna", "swh"]
 CLASSIFIERS = ["naive_bayes", "svm", "xgboost"]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lang",       default="lug",         choices=LANGUAGES)
+    parser.add_argument("--dataset",    default="masakhanews", choices=list(DATASETS))
+    parser.add_argument("--lang",       default=None,
+                        help="Defaults to the first language for --dataset")
     parser.add_argument("--scale",      default="100",
-                        help="Training scale: 100 | 250 | 500 | 750 | full")
+                        help="Training scale, e.g. 100 | 250 | 500 | 750 | full "
+                             "(valid values depend on --dataset)")
     parser.add_argument("--seed",       default=42,  type=int)
     parser.add_argument("--classifier", default="naive_bayes", choices=CLASSIFIERS)
     args = parser.parse_args()
 
-    scale = "full" if args.scale == "full" else int(args.scale)
+    spec = DATASETS[args.dataset]
+    lang = args.lang or spec.languages[0]
+    if lang not in spec.languages:
+        raise SystemExit(f"lang '{lang}' not valid for dataset '{args.dataset}'. "
+                         f"Choose from: {spec.languages}")
 
-    print(f"lang={args.lang}  scale={scale}  seed={args.seed}  clf={args.classifier}")
+    scale = "full" if args.scale == "full" else int(args.scale)
+    valid_scales = {s if s == "full" else int(s) for s in spec.scales}
+    if scale not in valid_scales:
+        raise SystemExit(f"scale '{scale}' not valid for dataset '{args.dataset}'. "
+                         f"Choose from: {spec.scales}")
+
+    print(f"dataset={args.dataset}  lang={lang}  scale={scale}  "
+          f"seed={args.seed}  clf={args.classifier}")
     t0 = time.perf_counter()
 
     result = run_trial(
-        lang=args.lang,
+        lang=lang,
         scale=scale,
         seed=args.seed,
         classifier_name=args.classifier,
+        dataset=args.dataset,
     )
 
     elapsed = time.perf_counter() - t0
