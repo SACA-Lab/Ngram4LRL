@@ -1,0 +1,56 @@
+\begin{table}[t]
+\caption{Dominant TF-IDF feature type selected by validation-set tuning. W-1 = word unigrams, W-2 = word bigrams, C-35 = char 3--5-grams.}
+\label{tab:feature_wins}
+\begin{tabular}{llccc}
+\toprule
+ & Classifier & NB & SVM & XGB \\
+Language & Scale &  &  &  \\
+\midrule
+\multirow[t]{4}{*}{\textbf{Hausa}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Igbo}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & W-2 & C-35 \\
+\textbf{} & \textbf{500} & W-2 & W-2 & C-35 \\
+\textbf{} & \textbf{full} & W-2 & W-2 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Luganda}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Oromo}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Rundi}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{chiShona}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Swahili}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & W-2 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & W-2 & C-35 \\
+\textbf{} & \textbf{full} & W-2 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Yoruba}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\multirow[t]{4}{*}{\textbf{Amharic}} & \textbf{100} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{250} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{500} & C-35 & C-35 & C-35 \\
+\textbf{} & \textbf{full} & C-35 & C-35 & C-35 \\
+\cline{1-5}
+\bottomrule
+\end{tabular}
+\end{table}

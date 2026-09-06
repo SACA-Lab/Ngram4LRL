@@ -1,0 +1,36 @@
+Language,Scale,NB,SVM,XGB
+Amharic,100,C-35,W-1,C-35
+Amharic,250,C-35,C-35,C-35
+Amharic,500,C-35,C-35,C-35
+Amharic,750,C-35,C-35,W-2
+Amharic,full,C-35,W-2,C-35
+Hausa,100,C-35,C-35,C-35
+Hausa,250,C-35,C-35,C-35
+Hausa,500,C-35,C-35,C-35
+Hausa,750,C-35,C-35,C-35
+Hausa,full,W-2,C-35,C-35
+Igbo,100,C-35,C-35,C-35
+Igbo,250,W-2,W-2,C-35
+Igbo,500,W-2,C-35,C-35
+Igbo,750,C-35,C-35,C-35
+Igbo,full,W-2,W-2,C-35
+Oromo,100,C-35,C-35,C-35
+Oromo,250,C-35,C-35,C-35
+Oromo,500,C-35,W-2,C-35
+Oromo,750,C-35,C-35,C-35
+Oromo,full,W-1,W-1,C-35
+Nig. Pidgin,100,C-35,W-1,W-1
+Nig. Pidgin,250,W-1,W-2,C-35
+Nig. Pidgin,500,C-35,W-1,C-35
+Nig. Pidgin,750,W-2,W-2,C-35
+Nig. Pidgin,full,W-2,W-2,W-2
+Kiswahili,100,C-35,C-35,C-35
+Kiswahili,250,W-1,C-35,C-35
+Kiswahili,500,C-35,C-35,C-35
+Kiswahili,750,C-35,C-35,C-35
+Kiswahili,full,C-35,C-35,C-35
+Yoruba,100,C-35,C-35,C-35
+Yoruba,250,C-35,C-35,C-35
+Yoruba,500,C-35,C-35,C-35
+Yoruba,750,C-35,C-35,C-35
+Yoruba,full,W-2,C-35,C-35
