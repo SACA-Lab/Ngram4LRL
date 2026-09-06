@@ -1,0 +1,27 @@
+# AfriSenti dataset config, layered on top of configs/base.yaml via
+# `--dataset afrisenti`. Mirrors the schema of the finetuning track's
+# equivalent (../../finetuning/configs/afrisenti.yaml) and the ngram track's
+# documentation-only version (../../ngram/configs/afrisenti.yaml).
+
+hf_name: masakhane/afrisenti
+
+# ISO 639-3 code -> masakhane/afrisenti HF config name (identical here).
+lang_to_subset:
+  amh: amh
+  hau: hau
+  ibo: ibo
+  orm: orm
+  pcm: pcm
+  swa: swa
+  yor: yor
+
+# Plain string labels (not a HF ClassLabel), alphabetical.
+labels:
+  - negative
+  - neutral
+  - positive
+
+text_field: tweet
+
+# `null` denotes the full training split.
+data_scales: [100, 250, 500, 750, null]

@@ -1,0 +1,29 @@
+# AfriSenti dataset config — a second axis of the config, layered alongside
+# a model config (configs/xlm-r.yaml etc.) via `--dataset afrisenti`.
+# Mirrors the schema of the ngram track's equivalent (see
+# ../../ngram/configs/afrisenti.yaml), except lang_to_subset and labels are
+# read at runtime here (see src/data.py:load_dataset_config), not just
+# documentation.
+
+hf_name: masakhane/afrisenti
+
+# ISO 639-3 code -> masakhane/afrisenti HF config name (identical here).
+lang_to_subset:
+  amh: amh
+  hau: hau
+  ibo: ibo
+  orm: orm
+  pcm: pcm
+  swa: swa
+  yor: yor
+
+# Plain string labels (not a HF ClassLabel), alphabetical.
+labels:
+  - negative
+  - neutral
+  - positive
+
+text_field: tweet
+
+# `null` denotes the full training split.
+data_scales: [100, 250, 500, 750, null]

@@ -1,21 +1,32 @@
-"""Dataset loading and stratified subsampling for MasakhaNEWS."""
+"""Dataset loading and stratified subsampling.
+
+Supports MasakhaNEWS (the original task), AfriSenti, and SIB-200. MasakhaNEWS's
+per-language config names and labels stay in configs/base.yaml, as before;
+AfriSenti and SIB-200 read the equivalent fields from configs/<dataset>.yaml.
+See ``load_dataset_config``.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, Sequence
 
 import numpy as np
+import yaml
 from datasets import ClassLabel, Dataset, DatasetDict, load_dataset
 from sklearn.model_selection import StratifiedShuffleSplit
 
 DATASET_ID = "masakhane/masakhanews"
+DATASET_NAMES = ("masakhanews", "afrisenti", "sib200")
 
-LANG_TO_SUBSET = {
-    "lug": "lug",
-    "run": "run",
-    "sna": "sna",
-    "swa": "swa",
-}
+
+@dataclass
+class DatasetSpec:
+    hf_name: str
+    lang_to_subset: dict  # ISO 639-3 code -> HF dataset config name
+    labels: list
+    text_field: str
+    data_scales: list  # ints and/or None (None = full training split)
 
 
 @dataclass
@@ -23,6 +34,36 @@ class SplitSizes:
     train: int
     val: int
     test: int
+
+
+def load_dataset_config(dataset: str, base_cfg: dict, configs_dir: Path) -> DatasetSpec:
+    """Resolve the per-dataset loading parameters for ``--dataset``.
+
+    MasakhaNEWS's subset name equals the ISO code, so its mapping is built
+    from configs/base.yaml's ``languages`` list rather than duplicated in a
+    file. AfriSenti and SIB-200 read configs/<dataset>.yaml (same shape as
+    DatasetSpec) since their language codes don't always match the dataset's
+    own config names (e.g. SIB-200's Oromo is ``gaz``, not ``orm``).
+    """
+    if dataset == "masakhanews":
+        return DatasetSpec(
+            hf_name=DATASET_ID,
+            lang_to_subset={lang: lang for lang in base_cfg["languages"]},
+            labels=base_cfg["labels"],
+            text_field=base_cfg.get("text_field", "text"),
+            data_scales=base_cfg["data_scales"],
+        )
+    if dataset not in DATASET_NAMES:
+        raise ValueError(f"Unknown dataset {dataset!r}; expected one of {DATASET_NAMES}")
+    path = configs_dir / f"{dataset}.yaml"
+    cfg = yaml.safe_load(path.read_text())
+    return DatasetSpec(
+        hf_name=cfg["hf_name"],
+        lang_to_subset=cfg["lang_to_subset"],
+        labels=cfg["labels"],
+        text_field=cfg.get("text_field", "text"),
+        data_scales=cfg["data_scales"],
+    )
 
 
 def _normalize_split(
@@ -68,21 +109,38 @@ def _normalize_split(
     return kept.map(_map, remove_columns=list(cols))
 
 
+def load_dataset_split(spec: DatasetSpec, lang: str) -> DatasetDict:
+    """Return train/validation/test splits normalised to (text, label)."""
+    if lang not in spec.lang_to_subset:
+        raise ValueError(f"Unknown language code: {lang}")
+    raw = load_dataset(spec.hf_name, spec.lang_to_subset[lang])
+    return DatasetDict(
+        {
+            split: _normalize_split(raw[split], spec.labels, spec.text_field, split)
+            for split in raw
+        }
+    )
+
+
 def load_masakhanews(
     lang: str,
     label_names: Sequence[str],
     text_field: str = "text",
 ) -> DatasetDict:
-    """Return train/validation/test splits normalised to (text, label)."""
-    if lang not in LANG_TO_SUBSET:
-        raise ValueError(f"Unknown language code: {lang}")
-    raw = load_dataset(DATASET_ID, LANG_TO_SUBSET[lang])
-    return DatasetDict(
-        {
-            split: _normalize_split(raw[split], label_names, text_field, split)
-            for split in raw
-        }
+    """Return MasakhaNEWS splits for one language.
+
+    Thin convenience wrapper kept for callers that only ever use MasakhaNEWS
+    (e.g. scripts/tables.py's dataset_stats table); prefer
+    ``load_dataset_split`` for a ``--dataset``-parameterised call site.
+    """
+    spec = DatasetSpec(
+        hf_name=DATASET_ID,
+        lang_to_subset={lang: lang},
+        labels=list(label_names),
+        text_field=text_field,
+        data_scales=[],
     )
+    return load_dataset_split(spec, lang)
 
 
 def stratified_subsample(train: Dataset, n: Optional[int], seed: int) -> Dataset:

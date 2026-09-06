@@ -15,10 +15,16 @@ labels:
   - technology
 
 languages:
-  - lug
-  - run
-  - sna
-  - swa
+  - lug   # Luganda
+  - run   # Rundi
+  - sna   # chiShona
+  - swa   # Kiswahili
+  - yor   # Yoruba
+  - ibo   # Igbo
+  - hau   # Hausa
+  - amh   # Amharic
+  - orm   # Oromo
+  - pcm   # Nigerian Pidgin
 
 # Training-set sizes for the controlled-data experiments.
 data_scales: [100, 250, 500, 750, null]

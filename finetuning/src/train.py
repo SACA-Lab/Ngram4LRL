@@ -37,17 +37,26 @@ from transformers import (
     set_seed,
 )
 
-from .data import LANG_TO_SUBSET, class_counts, load_masakhanews, stratified_subsample
+from .data import (
+    DATASET_NAMES,
+    DatasetSpec,
+    class_counts,
+    load_dataset_config,
+    load_dataset_split,
+    stratified_subsample,
+)
 from .metrics import weighted_f1
 from .predict import save_test_predictions
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CONFIGS_DIR = REPO_ROOT / "configs"
 
 
 @dataclass
 class RunConfig:
     model_name: str
     short_name: str
+    dataset: str
     lang: str
     n: Optional[int]
     seed: int
@@ -78,6 +87,8 @@ def load_yaml(path: Path) -> dict:
 def build_run_config(
     model_cfg_path: Path,
     base_cfg: dict,
+    dataset_spec: DatasetSpec,
+    dataset: str,
     lang: str,
     n: Optional[int],
     seed: int,
@@ -88,6 +99,7 @@ def build_run_config(
     return RunConfig(
         model_name=model_cfg["model_name"],
         short_name=model_cfg["short_name"],
+        dataset=dataset,
         lang=lang,
         n=n,
         seed=seed,
@@ -99,7 +111,7 @@ def build_run_config(
         max_length=int(base_cfg["max_length"]),
         train_batch_size=int(train_bs),
         eval_batch_size=int(base_cfg["eval_batch_size"]),
-        num_labels=len(base_cfg["labels"]),
+        num_labels=len(dataset_spec.labels),
     )
 
 
@@ -142,7 +154,9 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-config", required=True, type=Path)
     ap.add_argument("--base-config", default=REPO_ROOT / "configs" / "base.yaml", type=Path)
-    ap.add_argument("--lang", required=True, choices=sorted(LANG_TO_SUBSET))
+    ap.add_argument("--dataset", default="masakhanews", choices=DATASET_NAMES)
+    ap.add_argument("--lang", required=True,
+                     help="Valid codes depend on --dataset (see configs/<dataset>.yaml)")
     ap.add_argument("--n", default=None, help="train subsample size (integer or 'full')")
     ap.add_argument("--seed", required=True, type=int)
     ap.add_argument("--output-root", default=None, type=Path)
@@ -155,20 +169,26 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     base_cfg = load_yaml(args.base_config)
+    dataset_spec = load_dataset_config(args.dataset, base_cfg, CONFIGS_DIR)
+    if args.lang not in dataset_spec.lang_to_subset:
+        raise SystemExit(
+            f"lang {args.lang!r} not valid for dataset {args.dataset!r}. "
+            f"Choose from: {sorted(dataset_spec.lang_to_subset)}"
+        )
+
     n = None if args.n in (None, "full", "None") else int(args.n)
-    cfg = build_run_config(args.model_config, base_cfg, args.lang, n, args.seed)
+    cfg = build_run_config(args.model_config, base_cfg, dataset_spec, args.dataset, args.lang, n, args.seed)
     if args.epochs is not None:
         cfg.max_epochs = args.epochs
-    output_root = args.output_root or (REPO_ROOT / base_cfg["output_root"])
+    default_root = REPO_ROOT / base_cfg["output_root"]
+    if args.dataset != "masakhanews":
+        default_root = default_root / args.dataset
+    output_root = args.output_root or default_root
 
     seed_everything(cfg.seed, base_cfg.get("cudnn_deterministic", True))
 
-    print(f"[{cfg.run_id}] loading dataset")
-    raw = load_masakhanews(
-        cfg.lang,
-        base_cfg["labels"],
-        text_field=base_cfg.get("text_field", "text"),
-    )
+    print(f"[{cfg.run_id}] loading dataset ({args.dataset})")
+    raw = load_dataset_split(dataset_spec, cfg.lang)
     train_ds = stratified_subsample(raw["train"], cfg.n, cfg.seed)
     val_ds = raw["validation"]
     test_ds = raw["test"]
@@ -262,7 +282,7 @@ def main() -> None:
         tokenizer=tokenizer,
         max_length=cfg.max_length,
         out_path=pred_path,
-        label_names=base_cfg["labels"],
+        label_names=dataset_spec.labels,
     )
 
     log_path = output_root / "logs" / f"{cfg.run_id}.json"
@@ -287,6 +307,7 @@ def main() -> None:
         {
             "run_id": cfg.run_id,
             "model": cfg.short_name,
+            "dataset": cfg.dataset,
             "lang": cfg.lang,
             "n": cfg.n_label,
             "seed": cfg.seed,
