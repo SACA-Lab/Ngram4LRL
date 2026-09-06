@@ -6,7 +6,7 @@ from typing import Any
 
 from sklearn.metrics import f1_score
 
-from ngram.data import Split, load_masakhanews, subsample
+from ngram.data import DATASETS, Split, subsample
 from ngram.features import FEATURE_CONFIGS, build_vectorizer
 from ngram.models import build_naive_bayes, build_svm, build_xgboost
 
@@ -71,6 +71,7 @@ def _tune(
 
 @dataclass
 class TrialResult:
+    dataset: str                  # "masakhanews" | "afrisenti" | "sib200"
     lang: str
     scale: str                    # "100" | "250" | "500" | "750" | "full"
     seed: int
@@ -90,13 +91,18 @@ def run_trial(
     scale: int | str,
     seed: int,
     classifier_name: str,
+    dataset: str = "masakhanews",
     text_field: str = "text",
     tfidf_kwargs: dict | None = None,
 ) -> TrialResult:
     if tfidf_kwargs is None:
         tfidf_kwargs = dict(sublinear_tf=True, max_features=50000, min_df=1)
 
-    train_full, val, test = load_masakhanews(lang, text_field=text_field)
+    loader = DATASETS[dataset].loader
+    if dataset == "masakhanews":
+        train_full, val, test = loader(lang, text_field=text_field)
+    else:
+        train_full, val, test = loader(lang)
 
     train = train_full if scale == "full" else subsample(train_full, int(scale), seed=seed)
 
@@ -115,6 +121,7 @@ def run_trial(
     test_f1 = f1_score(test.labels, preds, average="weighted", zero_division=0)
 
     return TrialResult(
+        dataset=dataset,
         lang=lang,
         scale=str(scale),
         seed=seed,
