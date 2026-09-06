@@ -1,0 +1,114 @@
+# SIB-200 baseline grid — reference/documentation only.
+#
+# NOTE: like configs/experiment.yaml, this file is not read at runtime by any
+# script. The runtime source of truth is the `DATASETS["sib200"]` entry in
+# ngram/data.py (languages + scales) plus the CLF_GRIDS / feature configs in
+# ngram/train.py and ngram/features.py, which this file mirrors for reference.
+#
+# Every SIB-200 language config has the same split sizes (701/99/99), so the
+# scale grid stops at 500 instead of 750 (750 > 701, the full training size).
+
+# ── Languages ─────────────────────────────────────────────────────────────────
+# Short code -> mteb/sib200 HF config name and split sizes (identical across
+# languages), from HF datasets-server.
+languages:
+  hau:
+    name: Hausa
+    hf_config: hau_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  ibo:
+    name: Igbo
+    hf_config: ibo_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  lug:
+    name: Luganda
+    hf_config: lug_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  gaz:
+    name: Oromo
+    hf_config: gaz_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  run:
+    name: Rundi
+    hf_config: run_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  sna:
+    name: chiShona
+    hf_config: sna_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  swh:
+    name: Swahili
+    hf_config: swh_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  yor:
+    name: Yoruba
+    hf_config: yor_Latn
+    train_size: 701
+    val_size: 99
+    test_size: 99
+  amh:
+    name: Amharic
+    hf_config: amh_Ethi
+    train_size: 701
+    val_size: 99
+    test_size: 99
+
+# ── Data scales ───────────────────────────────────────────────────────────────
+# 750 is dropped: it exceeds the 701-example training split.
+scales: [100, 250, 500, "full"]
+
+# Five random seeds for stratified subsampling (one trial per seed).
+# "full" scale is deterministic; only seeds[0] is used there.
+seeds: [42, 123, 456, 789, 1024]
+
+# ── TF-IDF feature type candidates (hyperparameter) ───────────────────────────
+feature_types:
+  word_unigram:
+    analyzer: word
+    ngram_range: [1, 1]
+  word_bigram:
+    analyzer: word
+    ngram_range: [1, 2]
+  char_3to5:
+    analyzer: char_wb
+    ngram_range: [3, 5]
+
+# ── Shared TF-IDF settings (not tuned) ────────────────────────────────────────
+tfidf:
+  sublinear_tf: true
+  max_features: 50000
+  min_df: 1
+
+# ── Classifier hyperparameter grids (all tuned on val set) ────────────────────
+classifiers:
+  naive_bayes:
+    alpha: [0.01, 0.1, 0.5, 1.0]
+
+  svm:
+    C: [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
+
+  xgboost:
+    n_estimators: [100, 200, 300, 500]
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+
+# ── Dataset ───────────────────────────────────────────────────────────────────
+dataset:
+  hf_name: mteb/sib200
+  text_field: text
+  label_field: label   # ClassLabel: entertainment/geography/health/politics/science-technology/sports/travel

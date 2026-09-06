@@ -1,0 +1,90 @@
+# AfriSenti baseline grid — reference/documentation only.
+#
+# NOTE: like configs/experiment.yaml, this file is not read at runtime by any
+# script. The runtime source of truth is the `DATASETS["afrisenti"]` entry in
+# ngram/data.py (languages + scales) plus the CLF_GRIDS / feature configs in
+# ngram/train.py and ngram/features.py, which this file mirrors for reference.
+
+# ── Languages ─────────────────────────────────────────────────────────────────
+# masakhane/afrisenti split sizes (train / val / test), from HF datasets-server.
+languages:
+  amh:
+    name: Amharic
+    train_size: 5984
+    val_size: 1497
+    test_size: 1999
+  hau:
+    name: Hausa
+    train_size: 14172
+    val_size: 2677
+    test_size: 5303
+  ibo:
+    name: Igbo
+    train_size: 10192
+    val_size: 1841
+    test_size: 3682
+  orm:
+    name: Oromo
+    train_size: 11763
+    val_size: 396
+    test_size: 2096
+  pcm:
+    name: Nigerian Pidgin
+    train_size: 5121
+    val_size: 1281
+    test_size: 4154
+  swa:
+    name: Kiswahili
+    train_size: 1810
+    val_size: 453
+    test_size: 748
+  yor:
+    name: Yoruba
+    train_size: 8522
+    val_size: 2090
+    test_size: 4515
+
+# ── Data scales ───────────────────────────────────────────────────────────────
+scales: [100, 250, 500, 750, "full"]
+
+# Five random seeds for stratified subsampling (one trial per seed).
+# "full" scale is deterministic; only seeds[0] is used there.
+seeds: [42, 123, 456, 789, 1024]
+
+# ── TF-IDF feature type candidates (hyperparameter) ───────────────────────────
+feature_types:
+  word_unigram:
+    analyzer: word
+    ngram_range: [1, 1]
+  word_bigram:
+    analyzer: word
+    ngram_range: [1, 2]
+  char_3to5:
+    analyzer: char_wb
+    ngram_range: [3, 5]
+
+# ── Shared TF-IDF settings (not tuned) ────────────────────────────────────────
+tfidf:
+  sublinear_tf: true
+  max_features: 50000
+  min_df: 1
+
+# ── Classifier hyperparameter grids (all tuned on val set) ────────────────────
+classifiers:
+  naive_bayes:
+    alpha: [0.01, 0.1, 0.5, 1.0]
+
+  svm:
+    C: [0.001, 0.01, 0.1, 1.0, 10.0, 100.0]
+
+  xgboost:
+    n_estimators: [100, 200, 300, 500]
+    max_depth: 6
+    learning_rate: 0.1
+    subsample: 0.8
+
+# ── Dataset ───────────────────────────────────────────────────────────────────
+dataset:
+  hf_name: masakhane/afrisenti
+  text_field: tweet
+  label_field: label   # positive / negative / neutral (plain string, not a ClassLabel)
