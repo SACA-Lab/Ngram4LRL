@@ -1,0 +1,40 @@
+# SIB-200 dataset config — a second axis of the config, layered alongside a
+# model config (configs/xlm-r.yaml etc.) via `--dataset sib200`.
+# Mirrors the schema of the ngram track's equivalent (see
+# ../../ngram/configs/sib200.yaml), except lang_to_subset and labels are read
+# at runtime here (see src/data.py:load_dataset_config), not just
+# documentation.
+#
+# Every SIB-200 language has the same split sizes (701/99/99), so the scale
+# grid stops at 500 instead of 750 (750 > 701, the full training size).
+
+hf_name: mteb/sib200
+
+# Short code -> mteb/sib200 HF config name (FLORES-200 style). Note some
+# codes differ from MasakhaNEWS/AfriSenti for the same language: Oromo is
+# `gaz` here (not `orm`), Swahili is `swh` (not `swa`).
+lang_to_subset:
+  hau: hau_Latn
+  ibo: ibo_Latn
+  lug: lug_Latn
+  gaz: gaz_Latn   # Oromo
+  run: run_Latn
+  sna: sna_Latn
+  swh: swh_Latn   # Swahili
+  yor: yor_Latn
+  amh: amh_Ethi
+
+# HF ClassLabel, alphabetical.
+labels:
+  - entertainment
+  - geography
+  - health
+  - politics
+  - science-technology
+  - sports
+  - travel
+
+text_field: text
+
+# 750 is dropped: it exceeds the 701-example training split.
+data_scales: [100, 250, 500, null]

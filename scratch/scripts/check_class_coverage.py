@@ -2,14 +2,16 @@
 
 Usage:
     python -m scripts.check_class_coverage
+    python -m scripts.check_class_coverage --dataset afrisenti
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 import yaml
 
-from src.data import LANG_TO_SUBSET, class_counts, load_masakhanews, stratified_subsample
+from src.data import DATASET_NAMES, class_counts, load_dataset_config, load_dataset_split, stratified_subsample
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,28 +24,31 @@ def _summarise(name: str, ds, labels) -> None:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dataset", default="masakhanews", choices=DATASET_NAMES)
+    args = ap.parse_args()
+
     base_cfg = yaml.safe_load(open(REPO_ROOT / "configs" / "base.yaml"))
-    labels = base_cfg["labels"]
+    spec = load_dataset_config(args.dataset, base_cfg, REPO_ROOT / "configs")
     seeds = base_cfg["seeds"]
-    sizes = [s for s in base_cfg["data_scales"] if s is not None]
-    text_field = base_cfg.get("text_field", "text")
+    sizes = [s for s in spec.data_scales if s is not None]
 
-    print(f"labels (k={len(labels)}): {labels}")
+    print(f"dataset={args.dataset}  labels (k={len(spec.labels)}): {spec.labels}")
 
-    for lang in base_cfg["languages"]:
-        print(f"\n{lang} ({LANG_TO_SUBSET[lang]})")
-        ds = load_masakhanews(lang, labels, text_field=text_field)
-        _summarise("train", ds["train"], labels)
-        _summarise("val  ", ds["validation"], labels)
-        _summarise("test ", ds["test"], labels)
+    for lang, subset in spec.lang_to_subset.items():
+        print(f"\n{lang} ({subset})")
+        ds = load_dataset_split(spec, lang)
+        _summarise("train", ds["train"], spec.labels)
+        _summarise("val  ", ds["validation"], spec.labels)
+        _summarise("test ", ds["test"], spec.labels)
 
         full = ds["train"]
         for n in sizes:
             print(f"  subsample N={n}:")
             for seed in seeds:
                 sub = stratified_subsample(full, n, seed)
-                counts = class_counts(sub, len(labels))
-                empty = [labels[i] for i, c in enumerate(counts) if c == 0]
+                counts = class_counts(sub, len(spec.labels))
+                empty = [spec.labels[i] for i, c in enumerate(counts) if c == 0]
                 tag = f"  empty_classes={empty}" if empty else ""
                 print(f"    seed={seed}: {counts.tolist()}{tag}")
 

@@ -5,3 +5,8 @@ venv/
 .env
 .DS_Store
 wandb/
+
+# Saved model checkpoints (~1GB+): kept locally for ablation studies and
+# durably in the Modal volume, not in git history (unlike predictions/logs,
+# which are small enough to track alongside the code).
+results/*/saved_models/

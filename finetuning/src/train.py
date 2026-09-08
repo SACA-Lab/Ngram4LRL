@@ -37,17 +37,26 @@ from transformers import (
     set_seed,
 )
 
-from .data import LANG_TO_SUBSET, class_counts, load_masakhanews, stratified_subsample
+from .data import (
+    DATASET_NAMES,
+    DatasetSpec,
+    class_counts,
+    load_dataset_config,
+    load_dataset_split,
+    stratified_subsample,
+)
 from .metrics import weighted_f1
 from .predict import save_test_predictions
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+CONFIGS_DIR = REPO_ROOT / "configs"
 
 
 @dataclass
 class RunConfig:
     model_name: str
     short_name: str
+    dataset: str
     lang: str
     n: Optional[int]
     seed: int
@@ -78,6 +87,8 @@ def load_yaml(path: Path) -> dict:
 def build_run_config(
     model_cfg_path: Path,
     base_cfg: dict,
+    dataset_spec: DatasetSpec,
+    dataset: str,
     lang: str,
     n: Optional[int],
     seed: int,
@@ -88,6 +99,7 @@ def build_run_config(
     return RunConfig(
         model_name=model_cfg["model_name"],
         short_name=model_cfg["short_name"],
+        dataset=dataset,
         lang=lang,
         n=n,
         seed=seed,
@@ -99,7 +111,7 @@ def build_run_config(
         max_length=int(base_cfg["max_length"]),
         train_batch_size=int(train_bs),
         eval_batch_size=int(base_cfg["eval_batch_size"]),
-        num_labels=len(base_cfg["labels"]),
+        num_labels=len(dataset_spec.labels),
     )
 
 
@@ -142,33 +154,51 @@ def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-config", required=True, type=Path)
     ap.add_argument("--base-config", default=REPO_ROOT / "configs" / "base.yaml", type=Path)
-    ap.add_argument("--lang", required=True, choices=sorted(LANG_TO_SUBSET))
+    ap.add_argument("--dataset", default="masakhanews", choices=DATASET_NAMES)
+    ap.add_argument("--lang", required=True,
+                     help="Valid codes depend on --dataset (see configs/<dataset>.yaml)")
     ap.add_argument("--n", default=None, help="train subsample size (integer or 'full')")
     ap.add_argument("--seed", required=True, type=int)
     ap.add_argument("--output-root", default=None, type=Path)
     ap.add_argument("--epochs", type=int, default=None, help="override max epochs")
     ap.add_argument("--no-early-stopping", action="store_true")
     ap.add_argument("--no-fp16", action="store_true")
+    ap.add_argument(
+        "--save-final-model", action="store_true",
+        help="Persist the trained model and tokeniser under "
+             "{output_root}/saved_models/{run_id}/ for downstream ablations.",
+    )
     return ap.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    base_cfg = load_yaml(args.base_config)
-    n = None if args.n in (None, "full", "None") else int(args.n)
-    cfg = build_run_config(args.model_config, base_cfg, args.lang, n, args.seed)
-    if args.epochs is not None:
-        cfg.max_epochs = args.epochs
-    output_root = args.output_root or (REPO_ROOT / base_cfg["output_root"])
+def run_trial(
+    model_config: Path,
+    base_cfg: dict,
+    dataset_spec: DatasetSpec,
+    dataset: str,
+    lang: str,
+    n: Optional[int],
+    seed: int,
+    output_root: Path,
+    epochs: Optional[int] = None,
+    early_stopping: bool = True,
+    fp16: bool = True,
+    save_model: bool = False,
+) -> dict:
+    """Run one (model, dataset, lang, N, seed) trial and return its metrics row.
+
+    Pulled out of ``main()`` so callers other than the CLI (e.g. the Modal
+    app) can invoke a trial directly with in-memory config, instead of
+    shelling out to ``python -m src.train``.
+    """
+    cfg = build_run_config(model_config, base_cfg, dataset_spec, dataset, lang, n, seed)
+    if epochs is not None:
+        cfg.max_epochs = epochs
 
     seed_everything(cfg.seed, base_cfg.get("cudnn_deterministic", True))
 
-    print(f"[{cfg.run_id}] loading dataset")
-    raw = load_masakhanews(
-        cfg.lang,
-        base_cfg["labels"],
-        text_field=base_cfg.get("text_field", "text"),
-    )
+    print(f"[{cfg.run_id}] loading dataset ({dataset})")
+    raw = load_dataset_split(dataset_spec, cfg.lang)
     train_ds = stratified_subsample(raw["train"], cfg.n, cfg.seed)
     val_ds = raw["validation"]
     test_ds = raw["test"]
@@ -194,13 +224,14 @@ def main() -> None:
         tok, batched=True, remove_columns=[c for c in val_ds.column_names if c != "label"]
     )
 
-    # Write checkpoints to local storage rather than the (possibly Drive-mounted)
-    # output_root: per-epoch checkpoint writes through Drive trigger API quota
-    # errors and slow training significantly.
+    # Write checkpoints to local storage rather than the (possibly Drive- or
+    # Volume-mounted) output_root: per-epoch checkpoint writes through a
+    # network-backed mount trigger API quota errors and slow training
+    # significantly.
     ckpt_dir = Path(tempfile.gettempdir()) / "ft-ckpts" / cfg.run_id
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    use_fp16 = torch.cuda.is_available() and not args.no_fp16
+    use_fp16 = torch.cuda.is_available() and fp16
     training_args = TrainingArguments(
         output_dir=str(ckpt_dir),
         num_train_epochs=cfg.max_epochs,
@@ -225,7 +256,7 @@ def main() -> None:
     )
 
     callbacks = []
-    if not args.no_early_stopping:
+    if early_stopping:
         callbacks.append(
             EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience)
         )
@@ -262,42 +293,77 @@ def main() -> None:
         tokenizer=tokenizer,
         max_length=cfg.max_length,
         out_path=pred_path,
-        label_names=base_cfg["labels"],
+        label_names=dataset_spec.labels,
     )
+
+    if save_model:
+        save_dir = output_root / "saved_models" / cfg.run_id
+        save_dir.mkdir(parents=True, exist_ok=True)
+        trainer.save_model(str(save_dir))
+        tokenizer.save_pretrained(str(save_dir))
+        print(f"[{cfg.run_id}] saved model + tokenizer to {save_dir}")
 
     log_path = output_root / "logs" / f"{cfg.run_id}.json"
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(log_path, "w") as f:
-        json.dump(
-            {
-                "config": asdict(cfg),
-                "train_seconds": train_secs,
-                "val_f1_weighted": float(val_metrics.get("eval_f1_weighted", float("nan"))),
-                "test_f1_weighted": test_f1,
-                "train_class_counts": counts.tolist(),
-                "train_size": len(train_ds),
-                "training_history": list(trainer.state.log_history),
-            },
-            f,
-            indent=2,
-        )
+    log_record = {
+        "config": asdict(cfg),
+        "train_seconds": train_secs,
+        "val_f1_weighted": float(val_metrics.get("eval_f1_weighted", float("nan"))),
+        "test_f1_weighted": test_f1,
+        "train_class_counts": counts.tolist(),
+        "train_size": len(train_ds),
+        "training_history": list(trainer.state.log_history),
+    }
+    log_path.write_text(json.dumps(log_record, indent=2))
 
-    append_metrics_row(
-        output_root / "metrics.csv",
-        {
-            "run_id": cfg.run_id,
-            "model": cfg.short_name,
-            "lang": cfg.lang,
-            "n": cfg.n_label,
-            "seed": cfg.seed,
-            "val_f1_weighted": float(val_metrics.get("eval_f1_weighted", float("nan"))),
-            "test_f1_weighted": test_f1,
-            "train_seconds": train_secs,
-        },
-    )
+    metrics_row = {
+        "run_id": cfg.run_id,
+        "model": cfg.short_name,
+        "dataset": cfg.dataset,
+        "lang": cfg.lang,
+        "n": cfg.n_label,
+        "seed": cfg.seed,
+        "val_f1_weighted": float(val_metrics.get("eval_f1_weighted", float("nan"))),
+        "test_f1_weighted": test_f1,
+        "train_seconds": train_secs,
+    }
+    append_metrics_row(output_root / "metrics.csv", metrics_row)
 
     shutil.rmtree(ckpt_dir, ignore_errors=True)
     print(f"[{cfg.run_id}] done — test F1 = {test_f1:.4f}")
+    return metrics_row
+
+
+def main() -> None:
+    args = parse_args()
+    base_cfg = load_yaml(args.base_config)
+    dataset_spec = load_dataset_config(args.dataset, base_cfg, CONFIGS_DIR)
+    if args.lang not in dataset_spec.lang_to_subset:
+        raise SystemExit(
+            f"lang {args.lang!r} not valid for dataset {args.dataset!r}. "
+            f"Choose from: {sorted(dataset_spec.lang_to_subset)}"
+        )
+
+    n = None if args.n in (None, "full", "None") else int(args.n)
+    default_root = REPO_ROOT / base_cfg["output_root"]
+    if args.dataset != "masakhanews":
+        default_root = default_root / args.dataset
+    output_root = args.output_root or default_root
+
+    run_trial(
+        model_config=args.model_config,
+        base_cfg=base_cfg,
+        dataset_spec=dataset_spec,
+        dataset=args.dataset,
+        lang=args.lang,
+        n=n,
+        seed=args.seed,
+        output_root=output_root,
+        epochs=args.epochs,
+        early_stopping=not args.no_early_stopping,
+        fp16=not args.no_fp16,
+        save_model=args.save_final_model,
+    )
 
 
 if __name__ == "__main__":

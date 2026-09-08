@@ -16,10 +16,16 @@ labels:
 
 # ISO 639-3 language codes corresponding to MasakhaNEWS dataset configs.
 languages:
-  - lug
-  - run
-  - sna
-  - swa
+  - lug   # Luganda
+  - run   # Rundi
+  - sna   # chiShona
+  - swa   # Kiswahili
+  - yor   # Yoruba
+  - ibo   # Igbo
+  - hau   # Hausa
+  - amh   # Amharic
+  - orm   # Oromo
+  - pcm   # Nigerian Pidgin
 
 # Training-set sizes for the controlled-data experiments. `null` denotes the
 # full training split.
